@@ -1,4 +1,4 @@
-# generative-inpainting-pytorch
+# Generative-inpainting-pytorch
 A PyTorch reimplementation for the paper [Generative Image Inpainting with Contextual Attention](https://arxiv.org/abs/1801.07892) according to the author's [TensorFlow implementation](https://github.com/JiahuiYu/generative_inpainting).
 
 ## Prerequisites
@@ -16,28 +16,27 @@ python train.py --config configs/config.yaml
 
 The checkpoints and logs will be saved to `checkpoints`。
 
-## Test with the trained model
+You can set the path of train dataset(train_data_path) in `./configs/config.yaml`.
+Currently, it is `./dataset/train`. This means that you need to save training dataset in the path.
+
+## Test with the trained model and customised inpainting coordinates
 By default, it will load the latest saved model in the checkpoints. You can also use `--iter` to choose the saved models by iteration.
 
 Trained PyTorch model: [[Google Drive](https://drive.google.com/open?id=1qbfA5BP9yzdTFFmiOTvYARUYgW1zwBBK)] [[Baidu Wangpan](https://pan.baidu.com/s/17HzpiqMPLIznvCWBfpNVGw)]
 
-```bash
-python test_single.py \
-	--image examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png \
-	--mask examples/center_mask_256.png \
-	--output examples/output.png
-```
-
-## Test with the converted TF model:
-Converted TF model: [[Google Drive](https://drive.google.com/file/d/1vz2Qp12_iwOiuvLWspLHrC1UIuhSLojx/view?usp=sharing)]
+Image input size should be [256,256].
 
 ```bash
-python test_tf_model.py \
+python test_single_edit.py \
 	--image examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png \
-	--mask examples/center_mask_256.png \
 	--output examples/output.png \
-	--model-path torch_model.p
+	--x1 100 \
+	--y1 50 \
+	--x2 180 \
+	--y2 210
 ```
+
+
 
 ## Test results on ImageNet validation set patches
 
