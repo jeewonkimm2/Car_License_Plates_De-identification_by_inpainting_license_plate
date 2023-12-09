@@ -112,6 +112,9 @@ venv.bak/
 ### macOS ###
 # General
 .DS_Store
+data/.DS_Store
+model/.DS_Store
+utils/.DS_Store
 .AppleDouble
 .LSOverride
 
