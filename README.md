@@ -1,4 +1,3 @@
-# Generative-inpainting-pytorch
 A PyTorch reimplementation for the paper [Generative Image Inpainting with Contextual Attention](https://arxiv.org/abs/1801.07892) according to the author's [TensorFlow implementation](https://github.com/JiahuiYu/generative_inpainting).
 
 ## Prerequisites
@@ -38,14 +37,13 @@ python test_single_edit.py \
 
 
 
-## Test results on ImageNet validation set patches
+## Inpainted examples
 
 With PyTorch, the model was trained on ImageNet for 430k iterations to converge (with batch_size 48, about 150h). Here are some test results on the patches from ImageNet validation set.
 
+
 | Input | Inpainted |
 |:---:|:---:|
-| [![val_00000827_input](examples/imagenet/imagenet_patches_ILSVRC2012_val_00000827_input.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00000827_input.png)  | [![val_00000827_output](examples/imagenet/imagenet_patches_ILSVRC2012_val_00000827_output.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00000827_output.png) |
-| [![val_00008210_input](examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png)  | [![val_00008210_output](examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_output.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_output.png) |
-| [![val_00022355_input](examples/imagenet/imagenet_patches_ILSVRC2012_val_00022355_input.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00022355_input.png)  | [![val_00022355_output](examples/imagenet/imagenet_patches_ILSVRC2012_val_00022355_output.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00022355_output.png) |
-| [![val_00025892_input](examples/imagenet/imagenet_patches_ILSVRC2012_val_00025892_input.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00025892_input.png)  | [![val_00025892_output](examples/imagenet/imagenet_patches_ILSVRC2012_val_00025892_output.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00025892_output.png) |
-| [![val_00045643_input](examples/imagenet/imagenet_patches_ILSVRC2012_val_00045643_input.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00045643_input.png)  | [![val_00045643_output](examples/imagenet/imagenet_patches_ILSVRC2012_val_00045643_output.png)](examples/imagenet/imagenet_patches_ILSVRC2012_val_00045643_output.png) |
+|<img width="250" alt="Screenshot 2023-12-10 at 8 56 41 PM" src="https://github.com/jeewonkimm2/generative-inpainting-pytorch/assets/108987773/b6a6e512-c6cd-471e-9139-4298b9320059">  | <img width="250" alt="Screenshot 2023-12-10 at 8 56 47 PM" src="https://github.com/jeewonkimm2/generative-inpainting-pytorch/assets/108987773/319b72f3-635e-433c-a278-496445c9c001">|
+|<img width="250" alt="Screenshot 2023-12-10 at 8 57 14 PM" src="https://github.com/jeewonkimm2/generative-inpainting-pytorch/assets/108987773/41b1e048-0246-4c9d-b906-bdac7f3b0c96">|<img width="250" alt="Screenshot 2023-12-10 at 8 57 19 PM" src="https://github.com/jeewonkimm2/generative-inpainting-pytorch/assets/108987773/d89cbb8f-acd5-498f-9c5e-e431b98cce72">
+|
