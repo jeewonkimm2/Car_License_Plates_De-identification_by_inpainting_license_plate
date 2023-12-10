@@ -12,6 +12,8 @@ demo % source .venv/bin/activate
 (.venv) demo % pip install --upgrade pip
 (.venv) demo % pip install Flask
 (.venv) demo % pip install flask-cors
+(.venv) demo % pip install roboflow
+(.venv) demo % pip install opencv-python
 
 # Create empty folder to save images and videos
 demo % mkdir database
