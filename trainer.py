@@ -5,7 +5,7 @@ from torch import autograd
 from model.networks import Generator, LocalDis, GlobalDis
 
 
-from utils.tools import get_model_list, local_patch, spatial_discounting_mask
+from utils.tools import get_model_list, local_patch, spatial_discounting_mask, random_bbox, mask_image
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -32,7 +32,7 @@ class Trainer(nn.Module):
             self.localD.to(self.device_ids[0])
             self.globalD.to(self.device_ids[0])
 
-    def forward(self, x, bboxes, masks, ground_truth, compute_loss_g=False):
+    def forward(self, x, bboxes, masks, ground_truth, compute_loss_g=True):
         self.train()
         l1_loss = nn.L1Loss()
         losses = {}
@@ -77,6 +77,7 @@ class Trainer(nn.Module):
                 torch.mean(global_fake_pred) * self.config['global_wgan_loss_alpha']
 
         return losses, x2_inpaint, offset_flow
+    
 
     def dis_forward(self, netD, ground_truth, x_inpaint):
         assert ground_truth.size() == x_inpaint.size()
@@ -97,6 +98,7 @@ class Trainer(nn.Module):
 
         interpolates = alpha * real_data + (1 - alpha) * fake_data
         interpolates = interpolates.requires_grad_().clone()
+        
 
         disc_interpolates = netD(interpolates)
         grad_outputs = torch.ones(disc_interpolates.size())
