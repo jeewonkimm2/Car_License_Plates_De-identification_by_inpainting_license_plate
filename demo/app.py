@@ -2,6 +2,9 @@ from flask import Flask, request, send_file
 from flask_cors import CORS
 from io import BytesIO
 import os
+from roboflow import Roboflow
+import cv2
+import numpy as np
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -13,6 +16,11 @@ ALLOWED_EXTENSIONS_VIDEO = {'mp4'}
 DB_PATH = 'database'
 IMAGE_PATH = os.path.join(DB_PATH, 'image')
 VIDEO_PATH = os.path.join(DB_PATH, 'video')
+
+# lisence-plate detection model(pretrained)
+rf = Roboflow(api_key="aIDzI6L02TDXz1ldVjqN")
+project = rf.workspace().project("vehicle-registration-plates-trudk")
+model = project.version(2).model
 
 def get_file_type(filename):
     if filename is not None:
@@ -61,6 +69,35 @@ def upload():
             
             # TODO : Handle uploaded image
             app.logger.info(f'Image file processing ...')
+            
+            # Liscence plate detection
+            lisence_plate_info = model.predict(current_image_path, confidence=40, overlap=30).json()
+            app.logger.info(f'Car plate detected: \n {lisence_plate_info}')
+            
+            predicted_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_predicted."+input_file.filename.split(".")[-1])
+            model.predict(current_image_path, confidence=40, overlap=30).save(predicted_path)
+            
+            x = lisence_plate_info['predictions'][0]['x']
+            y = lisence_plate_info['predictions'][0]['y']
+            width = lisence_plate_info['predictions'][0]['width']
+            height = lisence_plate_info['predictions'][0]['height']
+            
+            # Masking
+            image = cv2.imread(current_image_path)
+            img_height, img_width, img_channels = image.shape
+            app.logger.info(f'Given image: height-{img_height}, width-{img_width}, channel{img_channels}')
+            
+            x1 = int(x - width/2) if x - width/2 >= 0 else 0
+            y1 = int(y - height/2) if y - height/2 >= 0 else 0
+            x2 = int(x + width/2) if x + width/2 <= img_width else img_width
+            y2 = int(y + height/2) if y + height/2 <= img_height else img_height
+            
+            mask = np.zeros_like(image)
+            color=(128, 128, 130)
+            image[y1:y2, x1:x2] = color
+            
+            masked_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_masked."+input_file.filename.split(".")[-1])
+            cv2.imwrite(masked_path, image) # Saving masked image
 
             return input_file.filename
         else:
