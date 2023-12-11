@@ -11,17 +11,6 @@ import torchvision.utils as vutils
 from model.networks import Generator
 from utils.tools import get_config, is_image_file, default_loader, normalize, get_model_list
 
-# Define the bbox2mask function
-def bbox2mask(bbox, max_delta_h, max_delta_w, h, w):
-    mask = torch.zeros((1, h, w), dtype=torch.float32)
-    y1, x1, y2, x2 = bbox
-    y1 = max(0, y1 - max_delta_h)
-    x1 = max(0, x1 - max_delta_w)
-    y2 = min(h, y2 + max_delta_h)
-    x2 = min(w, x2 + max_delta_w)
-    mask[:, y1:y2, x1:x2] = 1.0
-    return mask
-
 parser = ArgumentParser()
 parser.add_argument('--config', type=str, default='configs/config.yaml', help="training configuration")
 parser.add_argument('--seed', type=int, help='manual seed')
@@ -33,6 +22,19 @@ parser.add_argument('--x1', type=int, help='Top-left x-coordinate of the rectang
 parser.add_argument('--y1', type=int, help='Top-left y-coordinate of the rectangular region')
 parser.add_argument('--x2', type=int, help='Bottom-right x-coordinate of the rectangular region')
 parser.add_argument('--y2', type=int, help='Bottom-right y-coordinate of the rectangular region')
+
+
+# Define the bbox2mask function for customised bbox according to coordinates
+def bbox2mask(bbox, max_delta_h, max_delta_w, h, w):
+    mask = torch.zeros((1, h, w), dtype=torch.float32)
+    y1, x1, y2, x2 = bbox
+    y1 = y1
+    x1 = x1
+    y2 = y2
+    x2 = x2
+    mask[:, y1:y2, x1:x2] = 1.0
+    return mask
+
 
 def main():
     args = parser.parse_args()
@@ -86,12 +88,14 @@ def main():
 
                 # Define the trainer
                 netG = Generator(config['netG'], cuda, device_ids)
-                # Resume weight
-                last_model_name = get_model_list(checkpoint_path, "gen", iteration=args.iter)
+                # Latest model
+                # last_model_name = get_model_list(checkpoint_path, "gen", iteration=args.iter)
+                last_model_name = get_model_list(checkpoint_path, "gen_00100000.pt")
+
                 netG.load_state_dict(torch.load(last_model_name))
                 model_iteration = args.iter
                 print("Resume from {} at iteration {}".format(checkpoint_path, model_iteration))
-
+                
                 if cuda:
                     netG = nn.parallel.DataParallel(netG, device_ids=device_ids)
                     ground_truth = ground_truth.cuda()

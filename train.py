@@ -23,96 +23,105 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import csv
 
-
-
 torch.autograd.set_detect_anomaly(True)
-
 
 parser = ArgumentParser()
 parser.add_argument('--config', type=str, default='configs/config.yaml',
                     help="training configuration")
 parser.add_argument('--seed', type=int, help='manual seed')
 
+# Calculate PSNR for performance metric
+def calculate_psnr(original, restored, max_value=1.0):
+    mse = torch.mean((original - restored) ** 2)
+    psnr = 20 * torch.log10(max_value / torch.sqrt(mse))
+    return psnr.item()
 
+# Calculate performance metric of validation dataset
 def validate(trainer, val_loader, config, iteration, writer, device):
     trainer.eval()
     total_loss_d = 0.0
     total_loss_g = 0.0  # Add this line
     total_loss_tv = 0.0
+    total_psnr = 0.0
 
     iterable_val_loader = iter(val_loader)
     trainer_module = trainer.module
     start_iteration = trainer_module.resume(config['resume']) if config['resume'] else 1
     
+    try:
+        ground_truth = next(iterable_val_loader)
+    except StopIteration:
+        iterable_val_loader = iter(val_loader)
+        ground_truth = next(iterable_val_loader)
 
-    for iteration in range(start_iteration, config['niter'] + 1):
-        try:
-            ground_truth = next(iterable_val_loader)
-        except StopIteration:
-            iterable_val_loader = iter(val_loader)
-            ground_truth = next(iterable_val_loader)
+    # Prepare the inputs
+    bboxes = random_bbox(config, batch_size=ground_truth.size(0))
+    x, mask = mask_image(ground_truth, bboxes, config)
+    if device:
+        x = x.cuda()
+        mask = mask.cuda()
+        ground_truth = ground_truth.cuda()
+    
+    bboxes = random_bbox(config, batch_size=x.size(0))
 
-        # Prepare the inputs
-        bboxes = random_bbox(config, batch_size=ground_truth.size(0))
-        x, mask = mask_image(ground_truth, bboxes, config)
-        if device:
-            x = x.cuda()
-            mask = mask.cuda()
-            ground_truth = ground_truth.cuda()
-        
-        bboxes = random_bbox(config, batch_size=x.size(0))
+    # Perform inference
+    losses, inpainted_result, _ = trainer(x, bboxes, mask, ground_truth)
 
-        # Perform inference
-        losses, inpainted_result, _ = trainer(x, bboxes, mask, ground_truth)
+    for k in losses.keys():
+        if not losses[k].dim() == 0:
+            losses[k] = torch.mean(losses[k])
 
-        for k in losses.keys():
-            if not losses[k].dim() == 0:
-                losses[k] = torch.mean(losses[k])
+    losses['d'] = losses['wgan_d'] + losses['wgan_gp'] * config['wgan_gp_lambda']
+    losses['g'] = losses['l1'] * config['l1_loss_alpha'] \
+            + losses['ae'] * config['ae_loss_alpha'] \
+            + losses['wgan_g'] * config['gan_loss_alpha']
 
-        # losses['d'] = losses['wgan_d'] + losses['wgan_gp'] * config['wgan_gp_lambda']
-        # losses['g'] = losses['l1'] * config['l1_loss_alpha'] \
-        #         + losses['ae'] * config['ae_loss_alpha'] \
-        #         + losses['wgan_g'] * config['gan_loss_alpha']
+    # Calculate TV loss
+    tv_loss = torch.sum(torch.abs(inpainted_result[:, :, :, :-1] - inpainted_result[:, :, :, 1:])) + \
+            torch.sum(torch.abs(inpainted_result[:, :, :-1, :] - inpainted_result[:, :, 1:, :]))
 
-        # Calculate TV loss
-        tv_loss = torch.sum(torch.abs(inpainted_result[:, :, :, :-1] - inpainted_result[:, :, :, 1:])) + \
-                torch.sum(torch.abs(inpainted_result[:, :, :-1, :] - inpainted_result[:, :, 1:, :]))
+    # Calculate PSNR of
+    psnr_value = calculate_psnr(ground_truth, inpainted_result)
 
-        # Accumulate the validation loss
-        # total_loss_d += losses['d'].item()
-        # total_loss_g += losses['g'].item()  # Add this line
-        total_loss_tv += tv_loss.item()  # Add this line
+    # Accumulate the validation loss
+    total_loss_d += losses['d'].item()
+    total_loss_g += losses['g'].item()  # Add this line
+    total_loss_tv += tv_loss.item()  # Add this line
+    total_psnr += psnr_value
 
 
     # Calculate average validation loss
-    # avg_loss_d = total_loss_d / len(val_loader)
-    # avg_loss_g = total_loss_g / len(val_loader)  # Add this line
+    avg_loss_d = total_loss_d / len(val_loader)
+    avg_loss_g = total_loss_g / len(val_loader)  # Add this line
     avg_loss_tv = total_loss_tv / len(val_loader)
+    avg_psnr = total_psnr / len(val_loader)
 
     # Print or log the average validation loss
-    # print(f'Average Validation Loss (Discriminator): {avg_loss_d}')
-    # print(f'Average Validation Loss (Generator): {avg_loss_g}')  # Add this line
+    print(f'Average Validation Loss (Discriminator): {avg_loss_d}')
+    print(f'Average Validation Loss (Generator): {avg_loss_g}')  # Add this line
     print(f'Average Validation Loss (TV): {avg_loss_tv}')
+    print(f'Average Validation PSNR: {avg_psnr}')
 
 
 
-    # writer.add_scalar('val_loss_d', avg_loss_d, iteration)
-    # writer.add_scalar('val_loss_g', avg_loss_g, iteration)  # Add this line
+    writer.add_scalar('val_loss_d', avg_loss_d, iteration)
+    writer.add_scalar('val_loss_g', avg_loss_g, iteration)  # Add this line
 
-    return avg_loss_tv
-
-
+    return avg_loss_tv, avg_loss_d, avg_loss_g, avg_psnr
 
 
 
 
-    
+
 def main():
     args = parser.parse_args()
     config = get_config(args.config)
 
-    avg_loss_tv_list = []  # to store avg_loss_tv values for visualization
-
+    # Store values for visualization
+    avg_loss_tv_list = []  
+    avg_loss_g_list = []
+    avg_loss_d_list = []
+    avg_psnr_list = []
 
     # CUDA configuration
     cuda = config['cuda']
@@ -248,7 +257,6 @@ def main():
                 message += speed_msg
                 logger.info(message)
         
-        
 
             if iteration % (config['viz_iter']) == 0:
                 viz_max_out = config['viz_max_out']
@@ -262,8 +270,12 @@ def main():
                                 '%s/niter_%03d.png' % (checkpoint_path, iteration),
                                 nrow=3 * 4,
                                 normalize=True)
-                avg_loss_tv = validate(trainer, val_loader, config, iteration, writer, device=torch.device('cuda' if cuda else 'cpu'))
-                avg_loss_tv_list.append(avg_loss_tv)  # append the value for visualization
+                
+            avg_loss_tv, avg_loss_d, avg_loss_g, avg_psnr = validate(trainer, val_loader, config, iteration, writer, device=torch.device('cuda' if cuda else 'cpu'))
+            avg_loss_tv_list.append(avg_loss_tv)  # append the value for visualization
+            avg_loss_d_list.append(avg_loss_d)
+            avg_loss_g_list.append(avg_loss_g)
+            avg_psnr_list.append(avg_psnr)
 
             # Save the model
             if iteration % config['snapshot_save_iter'] == 0:
@@ -274,19 +286,69 @@ def main():
         csv_file_path = ('./result/avg_loss_tv_list.csv')
         with open(csv_file_path, 'w', newline='') as csvfile:
             csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(['Iteration', 'Avg Loss TV'])
+            csv_writer.writerow(['Avg Loss TV'])
             for i, avg_loss_tv in enumerate(avg_loss_tv_list):
-                csv_writer.writerow([i * config['viz_iter'], avg_loss_tv])
+                csv_writer.writerow([avg_loss_tv])
 
         # Visualization of avg_loss_tv after training
-        plt.plot(range(config['viz_iter'], config['niter'] + 1, config['viz_iter']), avg_loss_tv_list, label='avg_loss_tv')
-        plt.title('Average TV Loss During Training')
+        plt.plot(avg_loss_tv_list, label='avg_loss_tv')
+        plt.title('Average TV Loss of Validation Set')
         plt.xlabel('Iteration')
         plt.ylabel('Average TV Loss')
         plt.legend()
 
         # Save the plot as an image
         plt.savefig('./result/train_tv_loss_plt')
+
+        # Close the plot
+        plt.close()
+
+        # Save avg_loss_g_list as a CSV file
+        csv_file_path = ('./result/avg_loss_g_list.csv')
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['Avg Loss G'])
+            for i, avg_loss_g in enumerate(avg_loss_g_list):
+                csv_writer.writerow([avg_loss_g])
+
+        # Save avg_loss_d_list as a CSV file
+        csv_file_path = ('./result/avg_loss_d_list.csv')
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['Avg Loss D'])
+            for i, avg_loss_d in enumerate(avg_loss_d_list):
+                csv_writer.writerow([avg_loss_d])
+
+        # Visualization of avg_loss_g and avg_loss_d after training
+        plt.plot(avg_loss_g_list, label='avg_loss_g')
+        plt.plot(avg_loss_d_list, label='avg_loss_d')
+        plt.title('Average Generator and Discriminator Loss of Validation Set')
+        plt.xlabel('Iteration')
+        plt.ylabel('Average Loss')
+        plt.legend()
+
+        # Save the plot as an image
+        plt.savefig('./result/train_g_d_loss_plt')
+
+        # Close the plot
+        plt.close()
+
+        csv_file_path = ('./result/avg_val_psnr.csv')
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['Avg Loss D'])
+            for i, avg_psnr in enumerate(avg_psnr_list):
+                csv_writer.writerow([avg_psnr])
+
+        # Visualization of avg_psnr after training
+        plt.plot(avg_psnr_list, label='avg_psnr')
+        plt.title('Average PSNR of Validation Set')
+        plt.xlabel('Iteration')
+        plt.ylabel('Average PSNR')
+        plt.legend()
+
+        # Save the plot as an image
+        plt.savefig('./result/train_psnr_plt')
 
         # Close the plot
         plt.close()
