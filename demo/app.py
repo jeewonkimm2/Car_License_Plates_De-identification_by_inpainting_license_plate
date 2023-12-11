@@ -18,7 +18,8 @@ IMAGE_PATH = os.path.join(DB_PATH, 'image')
 VIDEO_PATH = os.path.join(DB_PATH, 'video')
 
 # lisence-plate detection model(pretrained)
-rf = Roboflow(api_key="aIDzI6L02TDXz1ldVjqN")
+ROBOFLOW_API_KEY = "" # Insert api key here
+rf = Roboflow(api_key=ROBOFLOW_API_KEY)
 project = rf.workspace().project("vehicle-registration-plates-trudk")
 model = project.version(2).model
 
@@ -98,6 +99,26 @@ def upload():
             
             masked_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_masked."+input_file.filename.split(".")[-1])
             cv2.imwrite(masked_path, image) # Saving masked image
+            
+            size = 128 # 256 / 2
+            x1, x2 = x - size, x + size
+            y1, y2 = y - size, y + size
+            if x1 < 0:
+                image = cv2.copyMakeBorder(image, 0, 0, abs(x1), 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+                x2 += abs(x1)
+                x1 = 0
+            if y1 < 0:
+                image = cv2.copyMakeBorder(image, abs(y1), 0, 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+                y2 += abs(y1)
+                y1 = 0
+            if x2 > image.shape[1]:
+                image = cv2.copyMakeBorder(image, 0, 0, 0, x2 - image.shape[1], cv2.BORDER_CONSTANT, value=(255, 255, 255))
+            if y2 > image.shape[0]:
+                image = cv2.copyMakeBorder(image, 0, y2 - image.shape[0], 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+
+            cropped_image = image[y1:y2, x1:x2]
+            cropped_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_cropped."+input_file.filename.split(".")[-1])
+            cv2.imwrite(cropped_path, cropped_image) # Saving cropped image
 
             return input_file.filename
         else:
