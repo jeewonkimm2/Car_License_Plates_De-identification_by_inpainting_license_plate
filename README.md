@@ -24,7 +24,7 @@ By default, it will load the latest saved model in the checkpoints. You can also
 Image input size should be [256,256].
 
 ```bash
-python test_single_edit.py \
+python test_single.py \
 	--image examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png \
 	--output examples/output.png \
 	--x1 100 \
