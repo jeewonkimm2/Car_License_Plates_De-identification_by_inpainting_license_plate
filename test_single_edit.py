@@ -25,7 +25,7 @@ parser.add_argument('--y2', type=int, help='Bottom-right y-coordinate of the rec
 
 
 # Define the bbox2mask function for customised bbox according to coordinates
-def bbox2mask(bbox, max_delta_h, max_delta_w, h, w):
+def bbox2mask(bbox, h, w):
     mask = torch.zeros((1, h, w), dtype=torch.float32)
     y1, x1, y2, x2 = bbox
     y1 = y1
@@ -40,8 +40,6 @@ def main():
     args = parser.parse_args()
     config = get_config(args.config)
 
-    # Extract max_delta_h and max_delta_w from max_delta_shape in config
-    max_delta_h, max_delta_w = config.get('max_delta_shape', [32, 32])
 
     # CUDA configuration
     cuda = config['cuda']
@@ -75,8 +73,8 @@ def main():
                 ground_truth = ground_truth.unsqueeze(dim=0)
 
                 # Create a mask for the specified rectangular region
-                mask = bbox2mask((args.y1, args.x1, args.y2, args.x2), max_delta_h, max_delta_w,
-                                 config['image_shape'][1], config['image_shape'][0])
+                mask = bbox2mask((args.y1, args.x1, args.y2, args.x2),
+                                config['image_shape'][1], config['image_shape'][0])
                 mask = mask.unsqueeze(dim=0)
 
                 # Set checkpoint path

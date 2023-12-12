@@ -62,8 +62,6 @@ def validate(trainer, val_loader, config, iteration, writer, device):
         mask = mask.cuda()
         ground_truth = ground_truth.cuda()
     
-    bboxes = random_bbox(config, batch_size=x.size(0))
-
     # Perform inference
     losses, inpainted_result, _ = trainer(x, bboxes, mask, ground_truth)
 
