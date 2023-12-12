@@ -5,6 +5,7 @@ import os
 from roboflow import Roboflow
 import cv2
 import numpy as np
+import subprocess
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -18,7 +19,8 @@ IMAGE_PATH = os.path.join(DB_PATH, 'image')
 VIDEO_PATH = os.path.join(DB_PATH, 'video')
 
 # lisence-plate detection model(pretrained)
-rf = Roboflow(api_key="aIDzI6L02TDXz1ldVjqN")
+ROBOFLOW_API_KEY = "" # Insert api key here
+rf = Roboflow(api_key=ROBOFLOW_API_KEY)
 project = rf.workspace().project("vehicle-registration-plates-trudk")
 model = project.version(2).model
 
@@ -98,7 +100,60 @@ def upload():
             
             masked_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_masked."+input_file.filename.split(".")[-1])
             cv2.imwrite(masked_path, image) # Saving masked image
+            
+            size = 128 # 256 / 2
+            x1, x2 = x - size, x + size
+            y1, y2 = y - size, y + size
+            if x1 < 0:
+                image = cv2.copyMakeBorder(image, 0, 0, abs(x1), 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+                x2 += abs(x1)
+                x1 = 0
+            if y1 < 0:
+                image = cv2.copyMakeBorder(image, abs(y1), 0, 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+                y2 += abs(y1)
+                y1 = 0
+            if x2 > image.shape[1]:
+                image = cv2.copyMakeBorder(image, 0, 0, 0, x2 - image.shape[1], cv2.BORDER_CONSTANT, value=(255, 255, 255))
+            if y2 > image.shape[0]:
+                image = cv2.copyMakeBorder(image, 0, y2 - image.shape[0], 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
 
+            cropped_image = image[y1:y2, x1:x2]
+            cropped_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_cropped."+input_file.filename.split(".")[-1])
+            cv2.imwrite(cropped_path, cropped_image) # Saving cropped image
+            
+            # Generation
+            border = 256
+            center = border/2
+            x1 = int(center - width/2) if center - width/2 >= 0 else 0
+            y1 = int(center - height/2) if center - height/2 >= 0 else 0
+            x2 = int(center + width/2) if center + width/2 <= border else border
+            y2 = int(center + height/2) if center + height/2 <= border else border
+            generated_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_generated."+input_file.filename.split(".")[-1])
+            command = [
+                'python', 'generate.py',
+                '--image', cropped_path,
+                '--output', generated_path,
+                '--x1', f'{x1}', '--x2', f'{x2}', '--y1', f'{y1}', '--y2', f'{y2}'
+            ]
+            try:
+                subprocess.run(command, check=True)
+                app.logger.info(f'Image generated: {generated_path}')
+            except subprocess.CalledProcessError as e:
+                print(f"Error on image generation: {e}")
+                
+            # Output
+            original_image = cv2.imread(current_image_path)
+            generated_image = cv2.imread(generated_path)
+            
+            generated_height, generated_width, _ = generated_image.shape
+            start_x = x - generated_width // 2
+            start_y = y - generated_height // 2
+            generated_part = generated_image[:min(generated_height, original_image.shape[0] - start_y),
+                                :min(generated_width, original_image.shape[1] - start_x)]
+            original_image[start_y:start_y + generated_part.shape[0], start_x:start_x + generated_part.shape[1]] = generated_part
+            final_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_output."+input_file.filename.split(".")[-1])
+            cv2.imwrite(final_path, original_image) # Saving final image
+            
             return input_file.filename
         else:
             return 'Try with another filename'
@@ -124,7 +179,7 @@ def output():
         app.logger.info(f'Returning image file ...')
 
         image_file_root = os.path.join(IMAGE_PATH, filename.split(".")[0])
-        image_file = os.path.join(image_file_root, filename)
+        image_file = os.path.join(image_file_root, filename.split(".")[0]+"_output."+filename.split(".")[-1])
         image_type = f'image/{filename.split(".")[-1]}'
 
         return send_file(image_file, mimetype=image_type)
