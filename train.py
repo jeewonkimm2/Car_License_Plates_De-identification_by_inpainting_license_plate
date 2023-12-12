@@ -30,11 +30,7 @@ parser.add_argument('--config', type=str, default='configs/config.yaml',
                     help="training configuration")
 parser.add_argument('--seed', type=int, help='manual seed')
 
-# Calculate PSNR for performance metric
-def calculate_psnr(original, restored, max_value=1.0):
-    mse = torch.mean((original - restored) ** 2)
-    psnr = 20 * torch.log10(max_value / torch.sqrt(mse))
-    return psnr.item()
+
 
 # Calculate performance metric of validation dataset
 def validate(trainer, val_loader, config, iteration, writer, device):
@@ -42,7 +38,6 @@ def validate(trainer, val_loader, config, iteration, writer, device):
     total_loss_d = 0.0
     total_loss_g = 0.0  # Add this line
     total_loss_tv = 0.0
-    total_psnr = 0.0
 
     iterable_val_loader = iter(val_loader)
     trainer_module = trainer.module
@@ -78,34 +73,29 @@ def validate(trainer, val_loader, config, iteration, writer, device):
     tv_loss = torch.sum(torch.abs(inpainted_result[:, :, :, :-1] - inpainted_result[:, :, :, 1:])) + \
             torch.sum(torch.abs(inpainted_result[:, :, :-1, :] - inpainted_result[:, :, 1:, :]))
 
-    # Calculate PSNR of
-    psnr_value = calculate_psnr(ground_truth, inpainted_result)
 
     # Accumulate the validation loss
     total_loss_d += losses['d'].item()
     total_loss_g += losses['g'].item()  # Add this line
     total_loss_tv += tv_loss.item()  # Add this line
-    total_psnr += psnr_value
 
 
     # Calculate average validation loss
     avg_loss_d = total_loss_d / len(val_loader)
     avg_loss_g = total_loss_g / len(val_loader)  # Add this line
     avg_loss_tv = total_loss_tv / len(val_loader)
-    avg_psnr = total_psnr / len(val_loader)
 
     # Print or log the average validation loss
     print(f'Average Validation Loss (Discriminator): {avg_loss_d}')
     print(f'Average Validation Loss (Generator): {avg_loss_g}')  # Add this line
     print(f'Average Validation Loss (TV): {avg_loss_tv}')
-    print(f'Average Validation PSNR: {avg_psnr}')
 
 
 
     writer.add_scalar('val_loss_d', avg_loss_d, iteration)
     writer.add_scalar('val_loss_g', avg_loss_g, iteration)  # Add this line
 
-    return avg_loss_tv, avg_loss_d, avg_loss_g, avg_psnr
+    return avg_loss_tv, avg_loss_d, avg_loss_g
 
 
 
@@ -119,7 +109,6 @@ def main():
     avg_loss_tv_list = []  
     avg_loss_g_list = []
     avg_loss_d_list = []
-    avg_psnr_list = []
 
     # CUDA configuration
     cuda = config['cuda']
@@ -269,11 +258,10 @@ def main():
                                 nrow=3 * 4,
                                 normalize=True)
                 
-            avg_loss_tv, avg_loss_d, avg_loss_g, avg_psnr = validate(trainer, val_loader, config, iteration, writer, device=torch.device('cuda' if cuda else 'cpu'))
+            avg_loss_tv, avg_loss_d, avg_loss_g = validate(trainer, val_loader, config, iteration, writer, device=torch.device('cuda' if cuda else 'cpu'))
             avg_loss_tv_list.append(avg_loss_tv)  # append the value for visualization
             avg_loss_d_list.append(avg_loss_d)
             avg_loss_g_list.append(avg_loss_g)
-            avg_psnr_list.append(avg_psnr)
 
             # Save the model
             if iteration % config['snapshot_save_iter'] == 0:
@@ -288,18 +276,7 @@ def main():
             for i, avg_loss_tv in enumerate(avg_loss_tv_list):
                 csv_writer.writerow([avg_loss_tv])
 
-        # Visualization of avg_loss_tv after training
-        plt.plot(avg_loss_tv_list, label='avg_loss_tv')
-        plt.title('Average TV Loss of Validation Set')
-        plt.xlabel('Iteration')
-        plt.ylabel('Average TV Loss')
-        plt.legend()
 
-        # Save the plot as an image
-        plt.savefig('./result/train_tv_loss_plt')
-
-        # Close the plot
-        plt.close()
 
         # Save avg_loss_g_list as a CSV file
         csv_file_path = ('./result/avg_loss_g_list.csv')
@@ -331,25 +308,6 @@ def main():
         # Close the plot
         plt.close()
 
-        csv_file_path = ('./result/avg_val_psnr.csv')
-        with open(csv_file_path, 'w', newline='') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(['Avg Loss D'])
-            for i, avg_psnr in enumerate(avg_psnr_list):
-                csv_writer.writerow([avg_psnr])
-
-        # Visualization of avg_psnr after training
-        plt.plot(avg_psnr_list, label='avg_psnr')
-        plt.title('Average PSNR of Validation Set')
-        plt.xlabel('Iteration')
-        plt.ylabel('Average PSNR')
-        plt.legend()
-
-        # Save the plot as an image
-        plt.savefig('./result/train_psnr_plt')
-
-        # Close the plot
-        plt.close()
             
             
 
