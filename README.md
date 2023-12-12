@@ -1,4 +1,4 @@
-A PyTorch reimplementation for the paper [Generative Image Inpainting with Contextual Attention](https://arxiv.org/abs/1801.07892) according to the author's [TensorFlow implementation](https://github.com/JiahuiYu/generative_inpainting).
+# Inpainting Car Number Plate
 
 ## Prerequisites
 This code has been tested on Ubuntu 14.04 and the following are the main components that need to be installed:
@@ -20,8 +20,6 @@ Currently, it is `./dataset/train`. This means that you need to save training da
 
 ## Test with the trained model and customised inpainting coordinates
 By default, it will load the latest saved model in the checkpoints. You can also use `--iter` to choose the saved models by iteration.
-
-Trained PyTorch model: [[Google Drive](https://drive.google.com/open?id=1qbfA5BP9yzdTFFmiOTvYARUYgW1zwBBK)] [[Baidu Wangpan](https://pan.baidu.com/s/17HzpiqMPLIznvCWBfpNVGw)]
 
 Image input size should be [256,256].
 
