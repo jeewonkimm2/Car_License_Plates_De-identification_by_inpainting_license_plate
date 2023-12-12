@@ -19,9 +19,9 @@ demo % source .venv/bin/activate
 # Necessary packages for image generation model
 (.venv) demo % pip install -r requirements.txt
 
-# Create empty folder to save images and videos
+# Create empty folder to save images
 demo % mkdir database
-demo % cd database && mkdir image video
+demo % cd database && mkdir image
 ```
 
 ### 2. Run server
