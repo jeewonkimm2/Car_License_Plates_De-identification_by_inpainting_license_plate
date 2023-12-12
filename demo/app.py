@@ -102,8 +102,8 @@ def upload():
             cv2.imwrite(masked_path, image) # Saving masked image
             
             size = 128 # 256 / 2
-            x1, x2 = x - size, x + size
-            y1, y2 = y - size, y + size
+            x1, x2 = int(x - size), int(x + size)
+            y1, y2 = int(y - size), int(y + size)
             if x1 < 0:
                 image = cv2.copyMakeBorder(image, 0, 0, abs(x1), 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
                 x2 += abs(x1)
@@ -148,9 +148,9 @@ def upload():
             generated_height, generated_width, _ = generated_image.shape
             start_x = x - generated_width // 2
             start_y = y - generated_height // 2
-            generated_part = generated_image[:min(generated_height, original_image.shape[0] - start_y),
-                                :min(generated_width, original_image.shape[1] - start_x)]
-            original_image[start_y:start_y + generated_part.shape[0], start_x:start_x + generated_part.shape[1]] = generated_part
+            generated_part = generated_image[:int(min(generated_height, original_image.shape[0] - start_y)),
+                                :int(min(generated_width, original_image.shape[1] - start_x))]
+            original_image[int(start_y):int(start_y + generated_part.shape[0]), int(start_x):int(start_x + generated_part.shape[1])] = generated_part
             final_path = os.path.join(current_image_root, input_file.filename.split(".")[0]+"_output."+input_file.filename.split(".")[-1])
             cv2.imwrite(final_path, original_image) # Saving final image
             
