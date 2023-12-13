@@ -10,13 +10,11 @@ import subprocess
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
-# TODO: Update allowed extensions for each image/video format
+# Allowed extensions for image format
 ALLOWED_EXTENSIONS_IMAGE = {'png'}
-ALLOWED_EXTENSIONS_VIDEO = {'mp4'}
 
 DB_PATH = 'database'
 IMAGE_PATH = os.path.join(DB_PATH, 'image')
-VIDEO_PATH = os.path.join(DB_PATH, 'video')
 
 # lisence-plate detection model(pretrained)
 ROBOFLOW_API_KEY = "" # Insert api key here
@@ -29,8 +27,6 @@ def get_file_type(filename):
         format = filename.split('.')[-1]
         if format in ALLOWED_EXTENSIONS_IMAGE:
             return 'Image'
-        elif format in ALLOWED_EXTENSIONS_VIDEO:
-            return 'Video'
         else:
             return 'Unsupported'
     else:
@@ -157,13 +153,7 @@ def upload():
             return input_file.filename
         else:
             return 'Try with another filename'
-
-    elif get_file_type(input_file.filename) == "Video":
-        app.logger.info(f'Video file processing ...')
-
-        # TODO : Save uploaded video
-        # TODO : Handle uploaded video
-        
+    
     else:
         return 'Unsupported input format', 400
     
@@ -183,12 +173,7 @@ def output():
         image_type = f'image/{filename.split(".")[-1]}'
 
         return send_file(image_file, mimetype=image_type)
-
-    elif get_file_type(filename) == "Video":
-        app.logger.info(f'Returning video file ...')
-
-        return "Proceeded video"
-        
+    
     else:
         return 'Unsupported input format', 400
 
