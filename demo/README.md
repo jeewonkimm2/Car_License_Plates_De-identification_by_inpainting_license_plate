@@ -28,5 +28,3 @@ demo % cd database && mkdir image
 ``` bash
 (.venv) demo % python app.py
 ```
-
-<!-- TODO: How to use postman -->
