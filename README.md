@@ -1,4 +1,13 @@
-# Inpainting Car Number Plate
+# Car License Plates De-identification for Privacy Projection: by inpainting license plate
++ **Motivation**
+
+  1.   Proposal of 'Inpainting' as a De-identification Method
+	    - Existing methods such as mosaic and blur have the *disadvantage of being potentially restorable.*
+	    - The goal is to create a model where naturally transformed results emerge during the de-identification process.
+
+  2.   Setting the Domain as License Plates
+	    - While de-identification can be applied across various domains, acquiring datasets for de-identification, especially those containing personal information, can be challenging.
+	    - Hence, license plates were chosen as the domain for experimentation.
 
 ## Prerequisites
 This code has been tested on Ubuntu 14.04 and the following are the main components that need to be installed:
@@ -8,15 +17,23 @@ This code has been tested on Ubuntu 14.04 and the following are the main compone
 - tensorboardX
 - pyyaml
 
+## Download dataset
+You can download car dataset here.
+
+- Kaggle: https://www.kaggle.com/datasets/andrewmvd/car-plate-detection
+- Roboflow: https://public.roboflow.com/object-detection/license-plates-us-eu
+
+You can save the images in `./dataset/train`, `./dataset/val`, `./dataset/test`
+
+You can set the path of train dataset(train_data_path) in `./configs/config.yaml`.
+Currently, it is `./dataset/train`. This means that you need to save training dataset in the path.
+
 ## Train the model
 ```bash
 python train.py --config configs/config.yaml
 ```
 
 The checkpoints and logs will be saved to `checkpoints`。
-
-You can set the path of train dataset(train_data_path) in `./configs/config.yaml`.
-Currently, it is `./dataset/train`. This means that you need to save training dataset in the path.
 
 ## Test with the trained model and customised inpainting coordinates
 By default, it will load the latest saved model in the checkpoints. You can also use `--iter` to choose the saved models by iteration.
