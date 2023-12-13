@@ -26,7 +26,8 @@ You can download car dataset here.
 You can save the images in `./dataset/train`, `./dataset/val`, `./dataset/test`
 
 You can set the path of train dataset(train_data_path) in `./configs/config.yaml`.
-Currently, it is `./dataset/train`. This means that you need to save training dataset in the path.
+Currently, it is `./dataset/train`. This means that you need to save training dataset in the path. The same goes to validation and test dataset.
+
 
 ## Train the model
 ```bash
