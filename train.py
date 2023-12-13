@@ -277,7 +277,6 @@ def main():
                 csv_writer.writerow([avg_loss_tv])
 
 
-
         # Save avg_loss_g_list as a CSV file
         csv_file_path = ('./result/avg_loss_g_list.csv')
         with open(csv_file_path, 'w', newline='') as csvfile:
