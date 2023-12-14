@@ -21,6 +21,8 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, index):
         path = os.path.join(self.data_path, self.samples[index])
+        # path = os.path.join(self.data_path)
+
         img = default_loader(path)
 
         if self.random_crop:

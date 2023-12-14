@@ -19,7 +19,7 @@ mosaic_unit_size: 12
 # training parameters
 expname: benchmark
 cuda: True
-gpu_ids: [0, 1, 2]    # set the GPU ids to use, e.g. [0] or [1, 2]
+gpu_ids: [1]    # set the GPU ids to use, e.g. [0] or [1, 2]
 num_workers: 4
 lr: 0.0001
 beta1: 0.5
